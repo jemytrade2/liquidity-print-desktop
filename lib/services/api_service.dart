@@ -98,6 +98,22 @@ class ApiService {
     }
   }
 
+  /// Notify WordPress about the active symbol being viewed (so EA knows to stream it)
+  Future<void> setActiveSymbol(String symbol, String timeframe) async {
+    try {
+      await http.post(
+        Uri.parse('https://server168.liquidityprint.com/wp-json/liquidity/v1/active-symbols'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'symbols': [symbol], // Array of symbols currently being viewed
+          'timeframe': timeframe,
+        }),
+      );
+    } catch (e) {
+      print('Error setting active symbol: $e');
+    }
+  }
+
   /// Get Delta indicator data
   Future<Map<String, dynamic>?> getDelta(int userId, String symbol, String timeframe) async {
     return _getIndicator(AppConstants.deltaEndpoint, userId, symbol, timeframe);

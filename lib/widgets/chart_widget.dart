@@ -42,6 +42,7 @@ class _ChartWidgetState extends State<ChartWidget> {
     });
   }
 
+
   Future<void> _loadCandles({bool silent = false}) async {
     if (!silent) {
       setState(() {
@@ -51,6 +52,9 @@ class _ChartWidgetState extends State<ChartWidget> {
     }
 
     try {
+      // Notify WordPress that we're viewing this symbol (so EA knows to stream it)
+      await _notifyActiveSymbol();
+      
       final data = await _apiService.getCandles(_selectedSymbol, _selectedTimeframe);
       
       if (data['success'] == true) {
@@ -84,6 +88,15 @@ class _ChartWidgetState extends State<ChartWidget> {
           _error = 'Error loading data: $e';
         });
       }
+    }
+  }
+
+  /// Notify WordPress about the active symbol being viewed
+  Future<void> _notifyActiveSymbol() async {
+    try {
+      await _apiService.setActiveSymbol(_selectedSymbol, _selectedTimeframe);
+    } catch (e) {
+      print('Failed to notify active symbol: $e');
     }
   }
 
