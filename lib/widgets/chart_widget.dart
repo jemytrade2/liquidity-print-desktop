@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:candlesticks/candlesticks.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 import '../models/candle.dart' as app_candle;
 
@@ -19,23 +22,17 @@ class _ChartWidgetState extends State<ChartWidget> {
   bool _isLoading = true;
   String? _error;
   
-  final List<String> _symbols = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF'];
+  List<String> _symbols = ['EURUSD']; // Will be loaded from API
   final List<String> _timeframes = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'];
+
+  late Timer _timer; // Added for periodic polling
 
   @override
   void initState() {
     super.initState();
+    _loadSymbols(); // Load symbol list first
     _loadCandles();
     
-    // Poll for new data every second
-    Future.delayed(Duration.zero, () {
-      _startPolling();
-    });
-  }
-
-  void _startPolling() {
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
         _loadCandles(silent: true);
         _startPolling();
       }
@@ -139,12 +136,12 @@ class _ChartWidgetState extends State<ChartWidget> {
                       child: Text(symbol),
                     );
                   }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
                       setState(() {
-                        _selectedSymbol = value;
+                        _selectedSymbol = newValue;
                       });
-                      _loadCandles();
+                      _loadCandles(); // This will notify WordPress via _notifyActiveSymbol
                     }
                   },
                 ),
