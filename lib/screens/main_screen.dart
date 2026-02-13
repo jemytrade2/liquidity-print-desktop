@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/user.dart';
+import '../widgets/chart_widget.dart';
 
 class MainScreen extends StatefulWidget {
   final User user;
@@ -83,39 +84,10 @@ class _MainScreenState extends State<MainScreen> {
               ),
             ),
 
-            // Main Content
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.check_circle,
-                      color: AppColors.neonGreen,
-                      size: 64,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Login Successful!',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Welcome to Liquidity Print Desktop',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      'Chart and indicators coming soon...',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
+
+            // Main Content - Chart
+            const Expanded(
+              child: ChartWidget(),
             ),
           ],
         ),

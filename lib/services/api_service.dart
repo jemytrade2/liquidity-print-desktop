@@ -81,28 +81,21 @@ class ApiService {
   }
 
   /// Get candles for a symbol
-  Future<List<dynamic>> getCandles(String symbol, String timeframe, {int limit = 500}) async {
+  Future<Map<String, dynamic>> getCandles(String symbol, String timeframe) async {
     try {
-      final uri = Uri.parse('$baseUrl${AppConstants.getCandlesEndpoint}')
-          .replace(queryParameters: {
-        'symbol': symbol,
-        'timeframe': timeframe,
-        'limit': limit.toString(),
-      });
-
-      final response = await http.get(uri);
+      final response = await http.get(
+        Uri.parse('https://server168.liquidityprint.com/wp-json/liquidity/v1/candles?symbol=$symbol&tf=$timeframe'),
+      );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          return data['candles'] as List<dynamic>;
-        }
+        return jsonDecode(response.body);
+      } else {
+        return {'success': false, 'error': 'Failed to load candles'};
       }
     } catch (e) {
       print('Error fetching candles: $e');
+      return {'success': false, 'error': e.toString()};
     }
-    
-    return [];
   }
 
   /// Get Delta indicator data
