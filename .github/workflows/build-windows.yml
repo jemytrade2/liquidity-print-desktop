@@ -1,0 +1,41 @@
+name: Build Flutter Windows App
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+      
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
+      
+      - name: Get dependencies
+        run: flutter pub get
+      
+      - name: Build Windows App
+        run: flutter build windows --release
+      
+      - name: Create Release Folder
+        run: |
+          mkdir release_package
+          xcopy build\windows\x64\runner\Release release_package\ /E /I
+      
+      - name: Upload Windows Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: liquidity-print-desktop-windows
+          path: release_package/
+          retention-days: 30
