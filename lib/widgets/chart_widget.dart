@@ -25,18 +25,51 @@ class _ChartWidgetState extends State<ChartWidget> {
   List<String> _symbols = ['EURUSD']; // Will be loaded from API
   final List<String> _timeframes = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'];
 
-  late Timer _timer; // Added for periodic polling
+  late Timer _timer;
 
   @override
   void initState() {
     super.initState();
-    _loadSymbols(); // Load symbol list first
+    _loadSymbols();
     _loadCandles();
     
-        _loadCandles(silent: true);
-        _startPolling();
-      }
+    // Auto-refresh every 5 seconds
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _loadCandles(silent: true);
     });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  /// Load available symbols from API
+  Future<void> _loadSymbols() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://server168.liquidityprint.com/wp-json/liquidity/v1/symbols'),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['symbols'] != null) {
+          final symbols = (data['symbols'] as List)
+              .map((s) => s['name']?.toString() ?? '')
+              .where((s) => s.isNotEmpty)
+              .toList();
+          
+          if (symbols.isNotEmpty) {
+            setState(() {
+              _symbols = symbols;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print('Failed to load symbols: $e');
+    }
   }
 
 
@@ -225,7 +258,7 @@ class _ChartWidgetState extends State<ChartWidget> {
                             ),
                           )
                         : Candlesticks(
-                            candles: _candles,
+                            candles: _candles.reversed.toList(), // ✅ Left to right
                           ),
           ),
         ),
