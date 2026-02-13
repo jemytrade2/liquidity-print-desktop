@@ -17,12 +17,14 @@ class _ChartWidgetState extends State<ChartWidget> {
   final ApiService _apiService = ApiService();
   
   String _selectedSymbol = 'EURUSD';
-  String _selectedTimeframe = 'M1';
+  String _selectedTimeframe = 'M30';
   List<Candle> _candles = [];
   bool _isLoading = true;
   String? _error;
   
   List<String> _symbols = ['EURUSD']; // Will be loaded from API
+  List<String> _filteredSymbols = ['EURUSD']; // For search results
+  final TextEditingController _searchController = TextEditingController();
   final List<String> _timeframes = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'];
 
   late Timer _timer;
@@ -56,13 +58,19 @@ class _ChartWidgetState extends State<ChartWidget> {
         final data = jsonDecode(response.body);
         if (data['success'] == true && data['symbols'] != null) {
           final symbols = (data['symbols'] as List)
-              .map((s) => s['name']?.toString() ?? '')
+              .map((s) {
+                // Handle both string and object responses
+                if (s is String) return s;
+                if (s is Map && s['name'] != null) return s['name'].toString();
+                return '';
+              })
               .where((s) => s.isNotEmpty)
               .toList();
           
           if (symbols.isNotEmpty) {
             setState(() {
               _symbols = symbols;
+              _filteredSymbols = symbols; // Initialize filtered list
             });
           }
         }
@@ -70,6 +78,19 @@ class _ChartWidgetState extends State<ChartWidget> {
     } catch (e) {
       print('Failed to load symbols: $e');
     }
+  }
+
+  /// Filter symbols based on search query
+  void _filterSymbols(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredSymbols = _symbols;
+      } else {
+        _filteredSymbols = _symbols
+            .where((symbol) => symbol.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      }
+    });
   }
 
 
@@ -134,77 +155,140 @@ class _ChartWidgetState extends State<ChartWidget> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Controls Bar
+        // Toolbar
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
-            border: Border(
-              bottom: BorderSide(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                width: 1,
+            color: const Color(0xFF0A1929),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-            ),
+            ],
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Symbol Selector
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+              // Symbol selector with search
+              Row(
+                children: [
+                  // Symbol dropdown
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Symbol',
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.cyan.withOpacity(0.3)),
+                          ),
+                          child: DropdownButton<String>(
+                            value: _selectedSymbol,
+                            isExpanded: true,
+                            dropdownColor: const Color(0xFF0A1929),
+                            underline: const SizedBox(),
+                            style: const TextStyle(color: Colors.white),
+                            items: _filteredSymbols.map((String symbol) {
+                              return DropdownMenuItem<String>(
+                                value: symbol,
+                                child: Text(symbol),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _selectedSymbol = newValue;
+                                });
+                                _loadCandles();
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                child: DropdownButton<String>(
-                  value: _selectedSymbol,
-                  dropdownColor: const Color(0xFF061E32),
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  underline: Container(),
-                  items: _symbols.map((symbol) {
-                    return DropdownMenuItem(
-                      value: symbol,
-                      child: Text(symbol),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        _selectedSymbol = newValue;
-                      });
-                      _loadCandles(); // This will notify WordPress via _notifyActiveSymbol
-                    }
-                  },
+                  const SizedBox(width: 16),
+                  // Timeframe dropdown
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Timeframe',
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.cyan.withOpacity(0.3)),
+                          ),
+                          child: DropdownButton<String>(
+                            value: _selectedTimeframe,
+                            isExpanded: true,
+                            dropdownColor: const Color(0xFF0A1929),
+                            underline: const SizedBox(),
+                            style: const TextStyle(color: Colors.white),
+                            items: _timeframes.map((String tf) {
+                              return DropdownMenuItem<String>(
+                                value: tf,
+                                child: Text(tf),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _selectedTimeframe = newValue;
+                                });
+                                _loadCandles();
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Search bar
+              TextField(
+                controller: _searchController,
+                onChanged: _filterSymbols,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Search symbols...',
+                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                  prefixIcon: const Icon(Icons.search, color: Colors.cyan),
+                  filled: true,
+                  fillColor: Colors.black.withOpacity(0.3),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.cyan.withOpacity(0.3)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.cyan.withOpacity(0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.cyan),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
               ),
-              const SizedBox(width: 16),
-              
-              // Timeframe Buttons
-              ..._timeframes.map((tf) {
-                final isSelected = tf == _selectedTimeframe;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _selectedTimeframe = tf;
-                      });
-                      _loadCandles();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.black.withOpacity(0.5),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      minimumSize: const Size(50, 32),
-                    ),
-                    child: Text(tf, style: const TextStyle(fontSize: 12)),
-                  ),
-                );
-              }).toList(),
             ],
           ),
         ),
