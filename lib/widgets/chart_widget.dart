@@ -139,7 +139,7 @@ class _ChartWidgetState extends State<ChartWidget> {
               const SizedBox(width: 16),
               
               // Timeframe Buttons
-              ..._ _timeframes.map((tf) {
+              ..._timeframes.map((tf) {
                 final isSelected = tf == _selectedTimeframe;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
